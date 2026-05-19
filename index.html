@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Антон Dev — Разработка Telegram-ботов</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    /* ═══════════════════════════════
+       RESET & CUSTOM PROPERTIES
+    ═══════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080C12;
+      --bg2:       #0C1018;
+      --bg3:       #0F1520;
+      --surface:   rgba(15,21,32,0.75);
+      --border:    rgba(99,200,255,0.1);
+      --border2:   rgba(99,200,255,0.2);
+      --accent:    #3ECFFF;
+      --accent-d:  #0095CC;
+      --purple:    #9B6DFF;
+      --gold:      #F4C842;
+      --text:      #DDE6F0;
+      --muted:     #4D6A82;
+      --muted2:    #7A99B0;
+      --ff:        'Manrope', sans-serif;
+      --mono:      'JetBrains Mono', monospace;
+      --nav-h:     68px;
+      --r:         14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--ff);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--accent-d); border-radius: 4px; }
+
+    /* ═══════════════════════════════
+       NOISE + CANVAS BACKGROUND
+    ═══════════════════════════════ */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.032;
+    }
+
+    canvas#bg {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      opacity: 0.4;
+    }
+
+    /* ═══════════════════════════════
+       NAVIGATION
+    ═══════════════════════════════ */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      height: var(--nav-h);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 6vw;
+      backdrop-filter: blur(20px) saturate(1.5);
+      background: rgba(8,12,18,0.8);
+      border-bottom: 1px solid var(--border);
+      transition: background .4s;
+    }
+
+    .logo {
+      font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em;
+      color: #fff; text-decoration: none;
+    }
+    .logo span { color: var(--accent); }
+
+    .nav-links {
+      display: flex; gap: 2.5rem; list-style: none;
+    }
+    .nav-links a {
+      font-size: 0.82rem; font-weight: 500; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--muted2);
+      text-decoration: none; position: relative; transition: color .25s;
+    }
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: -4px; left: 0; right: 0;
+      height: 1px; background: var(--accent);
+      transform: scaleX(0); transform-origin: left; transition: transform .3s ease-out;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .nav-links a:hover::after { transform: scaleX(1); }
+
+    .nav-tg {
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 8px 20px; border-radius: 6px;
+      background: rgba(62,207,255,0.1); border: 1px solid var(--border2);
+      color: var(--accent); text-decoration: none;
+      transition: background .25s, color .25s;
+    }
+    .nav-tg:hover { background: var(--accent); color: var(--bg); }
+
+    /* Burger */
+    .burger { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
+    .burger span { display: block; width: 22px; height: 1.5px; background: var(--text); transition: .3s; }
+
+    /* Mobile menu */
+    .mob-menu {
+      display: none; position: fixed; inset: 0; z-index: 190;
+      background: rgba(8,12,18,0.97); backdrop-filter: blur(28px);
+      flex-direction: column; align-items: center; justify-content: center; gap: 2.2rem;
+    }
+    .mob-menu.open { display: flex; }
+    .mob-menu a { font-size: 1.8rem; font-weight: 700; color: var(--text); text-decoration: none; transition: color .2s; }
+    .mob-menu a:hover { color: var(--accent); }
+    .mob-close { position: absolute; top: 22px; right: 6vw; font-size: 1.4rem; color: var(--muted); cursor: pointer; background: none; border: none; }
+
+    /* ═══════════════════════════════
+       GENERIC
+    ═══════════════════════════════ */
+    section { position: relative; z-index: 2; }
+
+    .sec-label {
+      font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--accent);
+      display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;
+    }
+    .sec-label::before { content: ''; width: 26px; height: 1px; background: var(--accent); }
+
+    .sec-title {
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      font-weight: 800; line-height: 1.07; letter-spacing: -0.03em; color: #fff;
+      margin-bottom: 0.9rem;
+    }
+
+    .h-sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 6vw; position: relative; z-index: 2;
+    }
+
+    /* Reveal */
+    .reveal {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity .55s ease-out, transform .55s ease-out;
+    }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+
+    /* ═══════════════════════════════
+       HERO
+    ═══════════════════════════════ */
+    #hero {
+      min-height: 100svh;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: calc(var(--nav-h) + 5rem) 6vw 7rem;
+      position: relative; overflow: hidden;
+    }
+
+    /* Orbs */
+    .orb {
+      position: absolute; border-radius: 50%; pointer-events: none; filter: blur(100px);
+    }
+    .orb1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(62,207,255,0.1) 0%, transparent 70%);
+      top: -180px; right: -180px;
+    }
+    .orb2 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(155,109,255,0.09) 0%, transparent 70%);
+      bottom: 0; left: 10%;
+    }
+
+    .hero-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 0.73rem; letter-spacing: 0.1em;
+      color: var(--accent); margin-bottom: 2rem;
+      opacity: 0; animation: fadeUp .6s .2s forwards;
+    }
+    .hero-chip::before { content: ''; width: 28px; height: 1px; background: var(--accent); }
+
+    .hero-title {
+      font-size: clamp(2.6rem, 7.5vw, 6.8rem);
+      font-weight: 800; line-height: 1.04; letter-spacing: -0.035em; color: #fff;
+      max-width: 880px;
+      opacity: 0; animation: fadeUp .7s .4s forwards;
+    }
+
+    .typed-line {
+      display: block; color: var(--accent);
+      border-right: 3px solid var(--accent);
+      animation: blink-cur 1.1s step-end infinite;
+      min-height: 1.1em;
+    }
+    @keyframes blink-cur { 50% { border-color: transparent; } }
+
+    .hero-sub {
+      margin-top: 2rem; max-width: 540px; font-size: 1.05rem;
+      color: var(--muted2); line-height: 1.75;
+      opacity: 0; animation: fadeUp .7s .65s forwards;
+    }
+
+    .hero-btns {
+      margin-top: 2.8rem; display: flex; gap: 1rem; flex-wrap: wrap;
+      opacity: 0; animation: fadeUp .7s .85s forwards;
+    }
+
+    .btn-solid {
+      padding: 14px 34px; background: var(--accent); color: var(--bg);
+      font-weight: 700; font-size: 0.88rem; letter-spacing: 0.05em;
+      text-transform: uppercase; text-decoration: none; border-radius: 8px;
+      border: none; cursor: pointer;
+      box-shadow: 0 0 32px rgba(62,207,255,0.3);
+      transition: transform .25s, box-shadow .25s;
+    }
+    .btn-solid:hover { transform: translateY(-3px); box-shadow: 0 0 52px rgba(62,207,255,0.5); }
+
+    .btn-outline {
+      padding: 14px 34px; background: transparent;
+      border: 1px solid var(--border2); color: var(--text);
+      font-weight: 600; font-size: 0.88rem; letter-spacing: 0.05em;
+      text-transform: uppercase; text-decoration: none; border-radius: 8px;
+      transition: border-color .25s, color .25s;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    .hero-scroll {
+      position: absolute; bottom: 2.5rem; left: 6vw;
+      display: flex; align-items: center; gap: 12px;
+      font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; color: var(--muted);
+      opacity: 0; animation: fadeUp .5s 1.1s forwards;
+    }
+    .scroll-track { width: 42px; height: 1px; background: var(--muted); overflow: hidden; position: relative; }
+    .scroll-track::after {
+      content: ''; position: absolute; inset: 0; background: var(--accent);
+      transform: translateX(-100%);
+      animation: slide-r 2.2s 1.4s ease-in-out infinite;
+    }
+    @keyframes slide-r { to { transform: translateX(200%); } }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ═══════════════════════════════
+       PORTFOLIO
+    ═══════════════════════════════ */
+    #portfolio { padding: 8rem 6vw; }
+
+    .port-header { max-width: 660px; margin-bottom: 4.5rem; }
+    .port-header p { color: var(--muted2); font-size: 1rem; }
+
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1.25rem;
+    }
+
+    /* card spans */
+    .p-card-1 { grid-column: 1 / 7; }
+    .p-card-2 { grid-column: 7 / 13; }
+    .p-card-3 { grid-column: 1 / 7; }
+    .p-card-4 { grid-column: 7 / 13; }
+
+    .pcard {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 2rem 2rem 1.75rem;
+      backdrop-filter: blur(22px);
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: border-color .35s, transform .35s, box-shadow .35s;
+    }
+    .pcard:hover {
+      border-color: rgba(62,207,255,0.35);
+      transform: translateY(-5px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 40px rgba(62,207,255,0.06);
+    }
+    .pcard::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(62,207,255,0.04) 0%, transparent 55%);
+      opacity: 0; transition: opacity .4s;
+      pointer-events: none;
+    }
+    .pcard:hover::before { opacity: 1; }
+
+    /* Featured card (первый) */
+    .pcard.featured { border-color: rgba(62,207,255,0.22); }
+    .feat-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.09em;
+      padding: 4px 12px; border-radius: 100px; margin-bottom: 1.25rem;
+      background: rgba(62,207,255,0.1); border: 1px solid rgba(62,207,255,0.25);
+      color: var(--accent); width: fit-content;
+    }
+
+    .pcard-num {
+      font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.08em;
+      color: var(--muted); margin-bottom: 1.25rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pcard-num::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .pcard-icon {
+      width: 46px; height: 46px; border-radius: 10px;
+      background: rgba(62,207,255,0.08); border: 1px solid rgba(62,207,255,0.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; color: var(--accent); margin-bottom: 1.25rem;
+    }
+    .pcard-icon.v { background: rgba(155,109,255,0.08); border-color: rgba(155,109,255,0.2); color: var(--purple); }
+    .pcard-icon.g { background: rgba(244,200,66,0.08); border-color: rgba(244,200,66,0.2); color: var(--gold); }
+
+    .pcard-title {
+      font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em;
+      color: #fff; margin-bottom: 0.6rem;
+    }
+
+    .pcard-desc { font-size: 0.9rem; color: var(--muted2); line-height: 1.68; flex: 1; margin-bottom: 1.5rem; }
+
+    .pcard-tags { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 1.5rem; }
+    .ptag {
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em;
+      padding: 3px 10px; border-radius: 100px;
+      border: 1px solid var(--border); color: var(--muted2);
+      background: rgba(255,255,255,0.02);
+    }
+    .ptag.a { border-color: rgba(62,207,255,0.28); color: var(--accent); background: rgba(62,207,255,0.06); }
+
+    .pcard-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.82rem; font-weight: 600; letter-spacing: 0.04em;
+      padding: 9px 18px; border-radius: 7px;
+      text-decoration: none; width: fit-content;
+      border: 1px solid var(--border2); color: var(--accent);
+      transition: background .25s, color .25s; margin-top: auto;
+    }
+    .pcard-link:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    .pcard-link i { font-size: 0.85rem; }
+
+    /* ═══════════════════════════════
+       MICRO PROJECTS
+    ═══════════════════════════════ */
+    .micro-wrap {
+      margin-top: 4rem;
+      padding: 2.5rem 2.5rem 2rem;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: rgba(10,16,26,0.5);
+      backdrop-filter: blur(16px);
+    }
+    .micro-header {
+      display: flex; flex-wrap: wrap; gap: 1.5rem;
+      align-items: flex-start; justify-content: space-between;
+      margin-bottom: 2rem;
+    }
+    .micro-label {
+      font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--accent);
+      display: flex; align-items: center; gap: 8px;
+      white-space: nowrap;
+    }
+    .micro-sub {
+      font-size: 0.88rem; color: var(--muted2); line-height: 1.65;
+      max-width: 520px;
+    }
+    .micro-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+      border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    }
+    .micro-item {
+      display: flex; align-items: flex-start; gap: 1rem;
+      padding: 1.35rem 1.4rem;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      transition: background .25s;
+    }
+    .micro-item:nth-child(3n) { border-right: none; }
+    .micro-item:nth-last-child(-n+3) { border-bottom: none; }
+    .micro-item:hover { background: rgba(62,207,255,0.04); }
+    .micro-icon {
+      font-size: 1rem; color: var(--accent);
+      flex-shrink: 0; margin-top: 2px;
+      opacity: 0.8;
+    }
+    .micro-name {
+      font-size: 0.88rem; font-weight: 700; color: var(--text);
+      margin-bottom: 0.3rem; letter-spacing: -0.01em;
+    }
+    .micro-desc { font-size: 0.8rem; color: var(--muted2); line-height: 1.55; }
+
+    @media (max-width: 960px) {
+      .micro-grid { grid-template-columns: repeat(2, 1fr); }
+      .micro-item:nth-child(3n) { border-right: 1px solid var(--border); }
+      .micro-item:nth-child(2n) { border-right: none; }
+      .micro-item:nth-last-child(-n+2) { border-bottom: none; }
+      .micro-item:nth-last-child(-n+3) { border-bottom: 1px solid var(--border); }
+    }
+    @media (max-width: 560px) {
+      .micro-grid { grid-template-columns: 1fr; }
+      .micro-item { border-right: none !important; }
+      .micro-item:last-child { border-bottom: none; }
+      .micro-item:nth-last-child(-n+2) { border-bottom: 1px solid var(--border); }
+    }
+
+    /* ═══════════════════════════════
+       SERVICES
+    ═══════════════════════════════ */
+    #services { padding: 8rem 6vw; background: var(--bg2); }
+
+    .svc-header { max-width: 600px; margin-bottom: 4.5rem; }
+    .svc-header p { color: var(--muted2); font-size: 1rem; }
+
+    .svc-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem;
+    }
+
+    .svc-card {
+      background: rgba(15,21,32,0.6);
+      border: 1px solid var(--border);
+      border-radius: var(--r); padding: 2rem 1.75rem;
+      backdrop-filter: blur(20px);
+      transition: border-color .35s, transform .35s;
+      position: relative; overflow: hidden;
+    }
+    .svc-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      transform: scaleX(0); transform-origin: left; transition: transform .4s ease-out;
+    }
+    .svc-card:hover { border-color: rgba(62,207,255,0.3); transform: translateY(-5px); }
+    .svc-card:hover::before { transform: scaleX(1); }
+
+    .svc-icon {
+      font-size: 1.6rem; color: var(--accent); margin-bottom: 1.25rem;
+      display: block;
+    }
+    .svc-name {
+      font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 0.6rem;
+      letter-spacing: -0.01em;
+    }
+    .svc-desc { font-size: 0.875rem; color: var(--muted2); line-height: 1.65; }
+
+    /* ═══════════════════════════════
+       CONTACT
+    ═══════════════════════════════ */
+    #contact { padding: 8rem 6vw; }
+
+    .contact-wrap {
+      max-width: 680px; margin: 0 auto; text-align: center;
+    }
+    .contact-wrap .sec-label { justify-content: center; }
+    .contact-wrap .sec-label::before { display: none; }
+    .contact-wrap p {
+      font-size: 1.08rem; color: var(--muted2); margin-bottom: 2.8rem; line-height: 1.7;
+    }
+
+    .tg-big {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 18px 44px; background: var(--accent); color: var(--bg);
+      font-weight: 800; font-size: 1rem; letter-spacing: 0.04em;
+      text-transform: uppercase; text-decoration: none; border-radius: 10px;
+      box-shadow: 0 0 48px rgba(62,207,255,0.35);
+      transition: transform .25s, box-shadow .25s;
+      margin-bottom: 3rem;
+    }
+    .tg-big:hover { transform: translateY(-3px); box-shadow: 0 0 72px rgba(62,207,255,0.55); }
+    .tg-big i { font-size: 1.3rem; }
+
+    .social-row { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+    .social-ico {
+      display: flex; align-items: center; gap: 9px;
+      padding: 11px 22px; border-radius: 8px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+      color: var(--muted2); text-decoration: none; font-size: 0.85rem; font-weight: 500;
+      transition: border-color .25s, color .25s, background .25s;
+    }
+    .social-ico:hover { border-color: rgba(62,207,255,0.3); color: var(--accent); background: rgba(62,207,255,0.05); }
+    .social-ico i { font-size: 1rem; color: var(--accent); }
+
+    /* ═══════════════════════════════
+       FOOTER
+    ═══════════════════════════════ */
+    footer {
+      position: relative; z-index: 2;
+      padding: 2rem 6vw;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+    }
+    footer p { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+    .avail {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+    }
+    .dot-pulse {
+      width: 7px; height: 7px; border-radius: 50%; background: #4ADE80;
+      animation: pulse-a 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse-a {
+      0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.55); }
+      50%      { box-shadow: 0 0 0 6px rgba(74,222,128,0); }
+    }
+
+    /* ═══════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════ */
+    @media (max-width: 960px) {
+      .svc-grid { grid-template-columns: repeat(2, 1fr); }
+      .p-card-1, .p-card-2, .p-card-3, .p-card-4 { grid-column: 1 / -1; }
+    }
+    @media (max-width: 640px) {
+      .svc-grid { grid-template-columns: 1fr; }
+      .nav-links, .nav-tg { display: none; }
+      .burger { display: flex; }
+      .hero-title { font-size: 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+     BACKGROUND CANVAS
+═══════════════════════════════════ -->
+<canvas id="bg"></canvas>
+
+<!-- ═══════════════════════════════════
+     NAVIGATION
+═══════════════════════════════════ -->
+<nav id="navbar">
+  <a href="#hero" class="logo">A<span>.</span>DEV</a>
+  <ul class="nav-links">
+    <li><a href="#portfolio">Портфолио</a></li>
+    <li><a href="#services">Услуги</a></li>
+    <li><a href="#contact">Контакты</a></li>
+  </ul>
+  <a href="https://t.me/GUBAMUR" target="_blank" class="nav-tg">
+    <i class="fa-brands fa-telegram"></i> Написать
+  </a>
+  <button class="burger" id="burger" aria-label="Меню">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile menu -->
+<div class="mob-menu" id="mobMenu">
+  <button class="mob-close" id="mobClose">✕</button>
+  <a href="#portfolio" class="mob-link">Портфолио</a>
+  <a href="#services" class="mob-link">Услуги</a>
+  <a href="#contact" class="mob-link">Контакты</a>
+  <a href="https://t.me/GUBAMUR" target="_blank" class="mob-link" style="color:var(--accent)">Написать →</a>
+</div>
+
+<!-- ═══════════════════════════════════
+     HERO
+═══════════════════════════════════ -->
+<section id="hero">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+
+  <div class="hero-chip">Открыт для новых проектов</div>
+
+  <h1 class="hero-title">
+    Разработка<br>Telegram-ботов и MiniApp<br>
+    <span class="typed-line" id="typed"></span>
+  </h1>
+
+  <p class="hero-sub">
+    Помогаю бизнесу и предпринимателям автоматизировать рутину, увеличивать продажи
+    и экономить время с помощью решений под Telegram.
+  </p>
+
+  <div class="hero-btns">
+    <a href="#portfolio" class="btn-solid">Смотреть проекты</a>
+    <a href="https://t.me/GUBAMUR" target="_blank" class="btn-outline">
+      <i class="fa-brands fa-telegram"></i>&nbsp; Написать в Telegram
+    </a>
+  </div>
+
+  <div class="hero-scroll">
+    <div class="scroll-track"></div>
+    Прокрути вниз
+  </div>
+</section>
+
+<div class="h-sep"></div>
+
+<!-- ═══════════════════════════════════
+     PORTFOLIO
+═══════════════════════════════════ -->
+<section id="portfolio">
+  <div class="port-header reveal">
+    <div class="sec-label">Портфолио</div>
+    <h2 class="sec-title">Реализованные<br>проекты</h2>
+    <p>Живые работающие решения — от MiniApp до полезных утилит</p>
+  </div>
+
+  <div class="projects-grid">
+
+    <!-- Карточка 1: АнтиЖаба -->
+    <div class="pcard featured p-card-1 reveal">
+      <div class="feat-badge"><i class="fa-solid fa-star" style="font-size:.65rem"></i> Основной проект</div>
+      <div class="pcard-num">01</div>
+      <div class="pcard-icon"><i class="fa-solid fa-chart-line"></i></div>
+      <div class="pcard-title">АнтиЖаба</div>
+      <p class="pcard-desc">
+        Парсер цен на Wildberries, Ozon и Яндекс.Маркете. MiniApp с платной подпиской,
+        уведомлениями о снижении цены и личным кабинетом. Высоконагруженная система
+        мониторинга в реальном времени.
+      </p>
+      <div class="pcard-tags">
+        <span class="ptag a">Python</span>
+        <span class="ptag a">Aiogram 3</span>
+        <span class="ptag">PostgreSQL</span>
+        <span class="ptag">Docker</span>
+        <span class="ptag">MiniApp</span>
+        <span class="ptag">Payments</span>
+      </div>
+      <a href="https://t.me/antijabaprice_bot" target="_blank" class="pcard-link">
+        <i class="fa-brands fa-telegram"></i> Перейти в бот
+      </a>
+    </div>
+
+    <!-- Карточка 2: Shop Bot -->
+    <div class="pcard p-card-2 reveal" style="transition-delay:.08s">
+      <div class="pcard-num">02 — Pet-проект</div>
+      <div class="pcard-icon v"><i class="fa-solid fa-bag-shopping"></i></div>
+      <div class="pcard-title">Shop Bot</div>
+      <p class="pcard-desc">
+        Интерактивное демо бота-магазина с корзиной, добавлением товаров и симуляцией оплаты.
+        Показывает полную логику e‑commerce внутри Telegram — от каталога до чекаута.
+      </p>
+      <div class="pcard-tags">
+        <span class="ptag a">Python</span>
+        <span class="ptag">Aiogram</span>
+        <span class="ptag">e-commerce</span>
+        <span class="ptag">FSM</span>
+      </div>
+      <a href="https://hotex002-code.github.io/showboat/" target="_blank" class="pcard-link">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Демо
+      </a>
+    </div>
+
+    <!-- Карточка 3: Check-Subscription -->
+    <div class="pcard p-card-3 reveal" style="transition-delay:.12s">
+      <div class="pcard-num">03 — Pet-проект</div>
+      <div class="pcard-icon g"><i class="fa-solid fa-user-check"></i></div>
+      <div class="pcard-title">Check-Subscription Bot</div>
+      <p class="pcard-desc">
+        Бот для проверки подписки на канал. Выдаёт доступ к контенту только после проверки —
+        готовый модуль для интеграции в любые проекты с закрытым контентом.
+      </p>
+      <div class="pcard-tags">
+        <span class="ptag a">Python</span>
+        <span class="ptag">Aiogram</span>
+        <span class="ptag">Gatekeeping</span>
+        <span class="ptag">Модуль</span>
+      </div>
+      <a href="https://hotex002-code.github.io/checksubcribe_bot/" target="_blank" class="pcard-link">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Демо
+      </a>
+    </div>
+
+    <!-- Карточка 4: AI Bot -->
+    <div class="pcard p-card-4 reveal" style="transition-delay:.16s">
+      <div class="pcard-num">04 — Pet-проект</div>
+      <div class="pcard-icon"><i class="fa-solid fa-robot"></i></div>
+      <div class="pcard-title">AI-бот с ChatGPT</div>
+      <p class="pcard-desc">
+        Telegram-бот с интеграцией OpenAI API. Отвечает на вопросы, поддерживает контекст
+        диалога и служит шаблоном для умных ассистентов под бизнес-задачи.
+      </p>
+      <div class="pcard-tags">
+        <span class="ptag a">Python</span>
+        <span class="ptag a">OpenAI API</span>
+        <span class="ptag">Aiogram</span>
+        <span class="ptag">LLM</span>
+      </div>
+      <a href="https://hotex002-code.github.io/aibottg/" target="_blank" class="pcard-link">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Демо
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Micro-projects block -->
+  <div class="micro-wrap reveal">
+    <div class="micro-header">
+      <div class="micro-label">
+        <i class="fa-solid fa-layer-group"></i>
+        Ещё из арсенала
+      </div>
+      <p class="micro-sub">
+        Помимо крупных проектов — десятки небольших утилит, которые решают конкретную задачу
+        быстро и без лишнего. Всё написано чисто, легко форкается и адаптируется под любой проект.
+      </p>
+    </div>
+    <div class="micro-grid">
+      <div class="micro-item">
+        <span class="micro-icon"><i class="fa-solid fa-note-sticky"></i></span>
+        <div>
+          <div class="micro-name">Заметки в Telegram</div>
+          <div class="micro-desc">Личный бот-блокнот. Сохраняй текст, ссылки и идеи прямо в чате — всегда под рукой.</div>
+        </div>
+      </div>
+      <div class="micro-item">
+        <span class="micro-icon"><i class="fa-solid fa-list-check"></i></span>
+        <div>
+          <div class="micro-name">To-Do Бот</div>
+          <div class="micro-desc">Простой список задач с приоритетами, статусами и командами /done, /list, /clear.</div>
+        </div>
+      </div>
+      <div class="micro-item">
+        <span class="micro-icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+        <div>
+          <div class="micro-name">Трекер привычек</div>
+          <div class="micro-desc">Ежедневные чекины, статистика за неделю и мотивационные напоминания по расписанию.</div>
+        </div>
+      </div>
+      <div class="micro-item">
+        <span class="micro-icon"><i class="fa-solid fa-calculator"></i></span>
+        <div>
+          <div class="micro-name">Бот-расходы</div>
+          <div class="micro-desc">Фиксируй траты категориями, получай сводку за месяц и экспорт в CSV одной командой.</div>
+        </div>
+      </div>
+      <div class="micro-item">
+        <span class="micro-icon"><i class="fa-solid fa-link"></i></span>
+        <div>
+          <div class="micro-name">Укорачиватель ссылок</div>
+          <div class="micro-desc">Бот принимает длинный URL и возвращает короткий через публичный API за секунду.</div>
+        </div>
+      </div>
+      <div class="micro-item">
+        <span class="micro-icon"><i class="fa-solid fa-dice"></i></span>
+        <div>
+          <div class="micro-name">Генератор решений</div>
+          <div class="micro-desc">Не можешь выбрать? Бот рандомно выбирает из твоих вариантов и объясняет «почему».</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<div class="h-sep"></div>
+
+<!-- ═══════════════════════════════════
+     SERVICES
+═══════════════════════════════════ -->
+<section id="services">
+  <div class="svc-header reveal">
+    <div class="sec-label">Что я делаю</div>
+    <h2 class="sec-title">Услуги</h2>
+    <p>От простого автоматизированного бота до комплексного MiniApp под ключ</p>
+  </div>
+
+  <div class="svc-grid">
+    <div class="svc-card reveal">
+      <i class="fa-solid fa-robot svc-icon"></i>
+      <div class="svc-name">Боты под ключ</div>
+      <p class="svc-desc">От идеи до деплоя на сервер. Пишу, настраиваю и запускаю — ты получаешь готовый рабочий бот.</p>
+    </div>
+    <div class="svc-card reveal" style="transition-delay:.07s">
+      <i class="fa-solid fa-mobile-screen svc-icon"></i>
+      <div class="svc-name">MiniApp</div>
+      <p class="svc-desc">Полноценные веб-приложения внутри Telegram с интерфейсом, корзиной, личным кабинетом и оплатой.</p>
+    </div>
+    <div class="svc-card reveal" style="transition-delay:.14s">
+      <i class="fa-solid fa-plug svc-icon"></i>
+      <div class="svc-name">Интеграции</div>
+      <p class="svc-desc">Платёжные системы, парсинг маркетплейсов, OpenAI, внешние API — подключу любой сервис.</p>
+    </div>
+    <div class="svc-card reveal" style="transition-delay:.21s">
+      <i class="fa-solid fa-headset svc-icon"></i>
+      <div class="svc-name">Сопровождение</div>
+      <p class="svc-desc">Поддержка, доработки и хостинг. Не бросаю проект после сдачи — работаем на долгосрок.</p>
+    </div>
+  </div>
+</section>
+
+<div class="h-sep"></div>
+
+<!-- ═══════════════════════════════════
+     CONTACT
+═══════════════════════════════════ -->
+<section id="contact">
+  <div class="contact-wrap">
+    <div class="sec-label reveal">Контакты</div>
+    <h2 class="sec-title reveal">Обсудим проект?</h2>
+    <p class="reveal">
+      Заинтересовались? Напишите мне в Telegram — обсудим твой проект,
+      сроки и стоимость. Отвечаю быстро.
+    </p>
+    <div class="reveal">
+      <a href="https://t.me/GUBAMUR" target="_blank" class="tg-big">
+        <i class="fa-brands fa-telegram"></i>
+        Перейти в Telegram →
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════
+     FOOTER
+═══════════════════════════════════ -->
+<footer>
+  <p>© 2026 Антон. Разработка Telegram-ботов.</p>
+  <div class="avail">
+    <div class="dot-pulse"></div>
+    Доступен для новых проектов
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════ -->
+<script>
+/* ── PARTICLE CANVAS ── */
+const cvs = document.getElementById('bg');
+const c = cvs.getContext('2d');
+let W, H;
+
+function resize() { W = cvs.width = window.innerWidth; H = cvs.height = window.innerHeight; }
+resize(); window.addEventListener('resize', resize);
+
+let mx = W/2, my = H/2;
+window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+class P {
+  constructor() { this.init(); }
+  init() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.r = Math.random() * 1.2 + 0.3;
+    this.vx = (Math.random() - 0.5) * 0.25;
+    this.vy = (Math.random() - 0.5) * 0.25;
+    this.a = Math.random() * 0.4 + 0.08;
+  }
+  tick() {
+    const dx = mx - this.x, dy = my - this.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 150) { const f = (150 - d) / 150 * 0.7; this.x -= dx/d*f; this.y -= dy/d*f; }
+    this.x += this.vx; this.y += this.vy;
+    if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.init();
+  }
+  draw() {
+    c.beginPath(); c.arc(this.x, this.y, this.r, 0, Math.PI*2);
+    c.fillStyle = `rgba(62,207,255,${this.a})`; c.fill();
+  }
+}
+
+const pts = Array.from({length: 110}, () => new P());
+
+function frame() {
+  c.clearRect(0,0,W,H);
+  pts.forEach(p => { p.tick(); p.draw(); });
+  // connections
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i+1; j < pts.length; j++) {
+      const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+      if (d < 90) {
+        c.beginPath(); c.moveTo(pts[i].x, pts[i].y); c.lineTo(pts[j].x, pts[j].y);
+        c.strokeStyle = `rgba(62,207,255,${0.08*(1-d/90)})`; c.lineWidth = 0.5; c.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(frame);
+}
+frame();
+
+/* ── TYPED ── */
+const words = ['автоматизация', 'чат-боты с ИИ', 'парсинг маркетплейсов', 'интернет-магазины'];
+let wi = 0, ci = 0, del = false;
+const el = document.getElementById('typed');
+
+function tick() {
+  const w = words[wi];
+  if (!del) {
+    el.textContent = w.slice(0, ++ci);
+    if (ci === w.length) { del = true; setTimeout(tick, 2400); return; }
+  } else {
+    el.textContent = w.slice(0, --ci);
+    if (ci === 0) { del = false; wi = (wi+1) % words.length; }
+  }
+  setTimeout(tick, del ? 42 : 75);
+}
+tick();
+
+/* ── SCROLL REVEAL ── */
+const obs = new IntersectionObserver(en => {
+  en.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(r => obs.observe(r));
+
+/* ── MOBILE MENU ── */
+const menu = document.getElementById('mobMenu');
+document.getElementById('burger').onclick = () => menu.classList.add('open');
+document.getElementById('mobClose').onclick = () => menu.classList.remove('open');
+document.querySelectorAll('.mob-link').forEach(a => a.addEventListener('click', () => menu.classList.remove('open')));
+
+/* ── NAV SCROLL ── */
+const nav = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  nav.style.background = scrollY > 60 ? 'rgba(8,12,18,0.95)' : 'rgba(8,12,18,0.8)';
+});
+</script>
+</body>
+</html>
